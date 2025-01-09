@@ -2,7 +2,7 @@
 	"name": "flowlet1",
 	"properties": {
 		"folder": {
-			"name": "04. Exercise"
+			"name": "Practice/04. Exercise"
 		},
 		"type": "Flowlet",
 		"typeProperties": {

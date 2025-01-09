@@ -17,6 +17,9 @@
 				"type": "string"
 			}
 		},
+		"folder": {
+			"name": "Practice"
+		},
 		"annotations": [],
 		"type": "Binary",
 		"typeProperties": {

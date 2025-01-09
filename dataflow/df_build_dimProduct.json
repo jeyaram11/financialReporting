@@ -1,6 +1,9 @@
 {
 	"name": "df_build_dimProduct",
 	"properties": {
+		"folder": {
+			"name": "Practice"
+		},
 		"type": "MappingDataFlow",
 		"typeProperties": {
 			"sources": [

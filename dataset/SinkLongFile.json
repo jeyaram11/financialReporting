@@ -5,6 +5,9 @@
 			"referenceName": "ls_jtechfinance_dev",
 			"type": "LinkedServiceReference"
 		},
+		"folder": {
+			"name": "Practice"
+		},
 		"annotations": [],
 		"type": "DelimitedText",
 		"typeProperties": {

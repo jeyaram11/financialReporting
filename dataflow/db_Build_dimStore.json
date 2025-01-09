@@ -1,6 +1,9 @@
 {
 	"name": "db_Build_dimStore",
 	"properties": {
+		"folder": {
+			"name": "Practice"
+		},
 		"type": "MappingDataFlow",
 		"typeProperties": {
 			"sources": [

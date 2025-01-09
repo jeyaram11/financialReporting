@@ -6,7 +6,7 @@
 			"type": "LinkedServiceReference"
 		},
 		"folder": {
-			"name": "02. Exercise"
+			"name": "Practice/02. Exercise"
 		},
 		"annotations": [],
 		"type": "DelimitedText",
