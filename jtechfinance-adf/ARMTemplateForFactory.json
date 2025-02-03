@@ -319,7 +319,7 @@
 			"properties": {
 				"activities": [
 					{
-						"name": "df_products",
+						"name": "df_products_staging",
 						"type": "ExecuteDataFlow",
 						"dependsOn": [],
 						"policy": {
