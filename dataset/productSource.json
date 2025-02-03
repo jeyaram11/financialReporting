@@ -1,0 +1,31 @@
+{
+	"name": "productSource",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureBlobStorage",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Excel",
+		"typeProperties": {
+			"sheetName": "Products",
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": "products.xlsx",
+				"folderPath": "dimensions",
+				"container": "raw"
+			},
+			"firstRowAsHeader": true
+		},
+		"schema": [
+			{
+				"name": "Index",
+				"type": "String"
+			},
+			{
+				"name": "Product Name",
+				"type": "String"
+			}
+		]
+	}
+}
