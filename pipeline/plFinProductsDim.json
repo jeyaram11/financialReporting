@@ -16,7 +16,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataflow": {
-						"referenceName": "dataflow2",
+						"referenceName": "df_finproductsDim",
 						"type": "DataFlowReference"
 					},
 					"compute": {
