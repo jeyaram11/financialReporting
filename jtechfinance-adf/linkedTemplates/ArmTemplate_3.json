@@ -13,6 +13,64 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/ads_json_raw_Verde')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_jtechfinance_dev",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "Practice"
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "sampledata/Verde",
+						"fileSystem": "raw"
+					}
+				},
+				"schema": {
+					"type": "object",
+					"properties": {
+						"YearMonth": {
+							"type": "string"
+						},
+						"StoreName": {
+							"type": "string"
+						},
+						"Sales": {
+							"type": "object",
+							"properties": {
+								"Product": {
+									"type": "string"
+								},
+								"Vintage": {
+									"type": "string"
+								},
+								"Variety": {
+									"type": "string"
+								},
+								"Score": {
+									"type": "string"
+								},
+								"SalesPrice": {
+									"type": "string"
+								},
+								"SalesQty": {
+									"type": "string"
+								}
+							}
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/zip_destination')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -58,6 +116,118 @@
 					"compression": {
 						"type": "ZipDeflate"
 					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/dataflow2')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "fin_staging_products",
+								"type": "DatasetReference"
+							},
+							"name": "sourceProducts"
+						},
+						{
+							"dataset": {
+								"referenceName": "fin_dim_products",
+								"type": "DatasetReference"
+							},
+							"name": "dimProducts"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "fin_dim_products",
+								"type": "DatasetReference"
+							},
+							"name": "sinkDimProducts"
+						}
+					],
+					"transformations": [
+						{
+							"name": "checkProducts"
+						},
+						{
+							"name": "NewandOldProducts"
+						},
+						{
+							"name": "filterActive"
+						},
+						{
+							"name": "newProductscolumns"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          product_id as integer,",
+						"          product_name as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> sourceProducts",
+						"source(output(",
+						"          product_id as integer,",
+						"          product_no as integer,",
+						"          product_name as string,",
+						"          UpdatedDate as timestamp,",
+						"          IsRowCurrent as boolean,",
+						"          EffectiveDate as timestamp,",
+						"          EndDate as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> dimProducts",
+						"sourceProducts, filterActive join(sourceProducts@product_id == product_no,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> checkProducts",
+						"checkProducts split(isNull(product_no),",
+						"     disjoint: false) ~> NewandOldProducts@(NewProducts, Existing)",
+						"dimProducts filter(IsRowCurrent == true()) ~> filterActive",
+						"NewandOldProducts@NewProducts derive(UpdatedDate = currentTimestamp(),",
+						"          IsRowCurrent = 1,",
+						"          EffectiveDate = currentTimestamp(),",
+						"          EndDate = toDate('2025-12-31')) ~> newProductscolumns",
+						"newProductscolumns sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          product_id as integer,",
+						"          product_no as integer,",
+						"          product_name as string,",
+						"          UpdatedDate as timestamp,",
+						"          IsRowCurrent as boolean,",
+						"          EffectiveDate as timestamp,",
+						"          EndDate as timestamp",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          product_no = NewandOldProducts@NewProducts@product_id,",
+						"          product_name = NewandOldProducts@NewProducts@product_name,",
+						"          UpdatedDate,",
+						"          IsRowCurrent,",
+						"          EffectiveDate,",
+						"          EndDate",
+						"     )) ~> sinkDimProducts"
+					]
 				}
 			},
 			"dependsOn": []
@@ -1039,6 +1209,56 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/plFinProductsDim')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "df_DimProducts",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "dataflow2",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"sourceProducts": {},
+									"dimProducts": {},
+									"sinkDimProducts": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "fin_products"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/dataflow2')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/pl_Build_dimStore')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -1612,7 +1832,9 @@
 				"annotations": [],
 				"lastPublishTime": "2025-01-09T09:54:40Z"
 			},
-			"dependsOn": []
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ads_json_raw_Verde')]"
+			]
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/pl_LoadStaging_MasterAndProduct')]",
@@ -1765,291 +1987,6 @@
 				"lastPublishTime": "2025-01-09T09:54:40Z"
 			},
 			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/pl_LoadStaging_Transactions')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "GetMetadata",
-						"type": "Lookup",
-						"dependsOn": [
-							{
-								"activity": "TruncateStageSales",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzureSqlSource",
-								"sqlReaderQuery": "SELECT * FROM dbo.ADF_Metadata where FolderName in ('sales_data')",
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "sql_stage_dynamic",
-								"type": "DatasetReference",
-								"parameters": {
-									"TableName": "_notSet"
-								}
-							},
-							"firstRowOnly": false
-						}
-					},
-					{
-						"name": "Loop over Metadata",
-						"type": "ForEach",
-						"dependsOn": [
-							{
-								"activity": "GetMetadata",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"items": {
-								"value": "@activity('GetMetadata').output.value",
-								"type": "Expression"
-							},
-							"activities": [
-								{
-									"name": "LoadDataToSQL",
-									"type": "Copy",
-									"dependsOn": [],
-									"policy": {
-										"timeout": "0.12:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"source": {
-											"type": "DelimitedTextSource",
-											"storeSettings": {
-												"type": "AzureBlobFSReadSettings",
-												"recursive": true,
-												"wildcardFolderPath": {
-													"value": "@item().FolderName",
-													"type": "Expression"
-												},
-												"wildcardFileName": {
-													"value": "@item().FileName",
-													"type": "Expression"
-												},
-												"enablePartitionDiscovery": false
-											},
-											"formatSettings": {
-												"type": "DelimitedTextReadSettings"
-											}
-										},
-										"sink": {
-											"type": "AzureSqlSink",
-											"writeBehavior": "insert",
-											"sqlWriterUseTableLock": false
-										},
-										"enableStaging": false,
-										"translator": {
-											"type": "TabularTranslator",
-											"typeConversion": true,
-											"typeConversionSettings": {
-												"allowDataTruncation": true,
-												"treatBooleanAsNumber": false
-											}
-										}
-									},
-									"inputs": [
-										{
-											"referenceName": "abs_csv_cleansed_stage",
-											"type": "DatasetReference",
-											"parameters": {
-												"FolderName": {
-													"value": "@item().FolderName",
-													"type": "Expression"
-												},
-												"FileName": {
-													"value": "@item().FileName",
-													"type": "Expression"
-												},
-												"Delimiter": {
-													"value": "@item().Delimiter",
-													"type": "Expression"
-												}
-											}
-										}
-									],
-									"outputs": [
-										{
-											"referenceName": "sql_stage_dynamic",
-											"type": "DatasetReference",
-											"parameters": {
-												"TableName": {
-													"value": "@item().TableName",
-													"type": "Expression"
-												}
-											}
-										}
-									]
-								}
-							]
-						}
-					},
-					{
-						"name": "TruncateStageSales",
-						"type": "Lookup",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzureSqlSource",
-								"sqlReaderQuery": "TRUNCATE TABLE stage.Arancione_Sales\r\nTRUNCATE TABLE stage.Verde_Sales\r\nTRUNCATE TABLE stage.Celeste_Sales\r\nSELECT count(*) FROM stage.Arancione_Sales",
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "sql_stage_dynamic",
-								"type": "DatasetReference",
-								"parameters": {
-									"TableName": "_notSet"
-								}
-							}
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "Practice/08. Exercise"
-				},
-				"annotations": [],
-				"lastPublishTime": "2025-01-09T09:54:40Z"
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/pl_build_dimProduct')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Build Dim Product",
-						"type": "ExecuteDataFlow",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataflow": {
-								"referenceName": "df_build_dimProduct",
-								"type": "DataFlowReference",
-								"parameters": {},
-								"datasetParameters": {
-									"stageProduct": {},
-									"sourceDimProduct": {},
-									"InsertNewProducts": {},
-									"setInactiveProduct": {},
-									"setActiveRows": {}
-								}
-							},
-							"staging": {},
-							"compute": {
-								"coreCount": 8,
-								"computeType": "General"
-							},
-							"traceLevel": "Fine"
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "Practice/09. Exercise"
-				},
-				"annotations": [],
-				"lastPublishTime": "2025-01-09T09:54:40Z"
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/dataflows/df_build_dimProduct')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/pl_load_regions_staging')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "finRegionDataFlow",
-						"type": "ExecuteDataFlow",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataflow": {
-								"referenceName": "finRegionStagingPipeline",
-								"type": "DataFlowReference",
-								"parameters": {},
-								"datasetParameters": {
-									"finRegionSource": {},
-									"finRegionstaging": {}
-								}
-							},
-							"staging": {},
-							"compute": {
-								"coreCount": 8,
-								"computeType": "General"
-							},
-							"traceLevel": "Fine"
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "fin_region"
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/dataflows/finRegionStagingPipeline')]"
-			]
 		}
 	]
 }

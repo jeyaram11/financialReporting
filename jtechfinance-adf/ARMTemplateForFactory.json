@@ -412,6 +412,56 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/plFinProductsDim')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "df_DimProducts",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "dataflow2",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"sourceProducts": {},
+									"dimProducts": {},
+									"sinkDimProducts": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "fin_products"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/dataflow2')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/pl_Build_dimStore')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -4224,6 +4274,64 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/fin_dim_products')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_sql_jtechfinance",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "product_id",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "product_no",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "product_name",
+						"type": "nvarchar"
+					},
+					{
+						"name": "UpdatedDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "IsRowCurrent",
+						"type": "bit"
+					},
+					{
+						"name": "EffectiveDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "EndDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "fin_Products"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_sql_jtechfinance')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/fin_staging_products')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -4912,6 +5020,121 @@
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/AzureSqlTable1')]",
 				"[concat(variables('factoryId'), '/datasets/DelimitedText1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/dataflow2')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "fin_staging_products",
+								"type": "DatasetReference"
+							},
+							"name": "sourceProducts"
+						},
+						{
+							"dataset": {
+								"referenceName": "fin_dim_products",
+								"type": "DatasetReference"
+							},
+							"name": "dimProducts"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "fin_dim_products",
+								"type": "DatasetReference"
+							},
+							"name": "sinkDimProducts"
+						}
+					],
+					"transformations": [
+						{
+							"name": "checkProducts"
+						},
+						{
+							"name": "NewandOldProducts"
+						},
+						{
+							"name": "filterActive"
+						},
+						{
+							"name": "newProductscolumns"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          product_id as integer,",
+						"          product_name as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> sourceProducts",
+						"source(output(",
+						"          product_id as integer,",
+						"          product_no as integer,",
+						"          product_name as string,",
+						"          UpdatedDate as timestamp,",
+						"          IsRowCurrent as boolean,",
+						"          EffectiveDate as timestamp,",
+						"          EndDate as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> dimProducts",
+						"sourceProducts, filterActive join(sourceProducts@product_id == product_no,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> checkProducts",
+						"checkProducts split(isNull(product_no),",
+						"     disjoint: false) ~> NewandOldProducts@(NewProducts, Existing)",
+						"dimProducts filter(IsRowCurrent == true()) ~> filterActive",
+						"NewandOldProducts@NewProducts derive(UpdatedDate = currentTimestamp(),",
+						"          IsRowCurrent = 1,",
+						"          EffectiveDate = currentTimestamp(),",
+						"          EndDate = toDate('2025-12-31')) ~> newProductscolumns",
+						"newProductscolumns sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          product_id as integer,",
+						"          product_no as integer,",
+						"          product_name as string,",
+						"          UpdatedDate as timestamp,",
+						"          IsRowCurrent as boolean,",
+						"          EffectiveDate as timestamp,",
+						"          EndDate as timestamp",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          product_no = NewandOldProducts@NewProducts@product_id,",
+						"          product_name = NewandOldProducts@NewProducts@product_name,",
+						"          UpdatedDate,",
+						"          IsRowCurrent,",
+						"          EffectiveDate,",
+						"          EndDate",
+						"     )) ~> sinkDimProducts"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/fin_staging_products')]",
+				"[concat(variables('factoryId'), '/datasets/fin_dim_products')]"
 			]
 		},
 		{
