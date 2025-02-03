@@ -206,7 +206,6 @@
 				"     skipDuplicateMapOutputs: true,",
 				"     errorHandlingOption: 'stopOnFirstError',",
 				"     mapColumn(",
-				"          UpdatedDate,",
 				"          IsRowCurrent,",
 				"          EffectiveDate,",
 				"          EndDate",
