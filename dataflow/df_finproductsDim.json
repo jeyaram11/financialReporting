@@ -114,7 +114,7 @@
 				"     broadcast: 'left')~> Type2ChangeExists",
 				"Type2ChangeExists derive(IsRowCurrent = 0,",
 				"          EndDate = currentTimestamp(),",
-				"          product_id = NewandOldProducts@Existing@product_id) ~> setinactive",
+				"          product_no = product_no) ~> setinactive",
 				"setinactive select(mapColumn(",
 				"          product_no,",
 				"          UpdatedDate,",
