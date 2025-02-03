@@ -206,6 +206,7 @@
 				"     skipDuplicateMapOutputs: true,",
 				"     errorHandlingOption: 'stopOnFirstError',",
 				"     mapColumn(",
+				"          product_id,",
 				"          IsRowCurrent,",
 				"          EffectiveDate,",
 				"          EndDate",
