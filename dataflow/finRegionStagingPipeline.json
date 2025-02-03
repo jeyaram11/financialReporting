@@ -1,0 +1,68 @@
+{
+	"name": "finRegionStagingPipeline",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "finRegionSourceExcel",
+						"type": "DatasetReference"
+					},
+					"name": "finRegionSource"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "finRegionStageSQL",
+						"type": "DatasetReference"
+					},
+					"name": "finRegionstaging"
+				}
+			],
+			"transformations": [
+				{
+					"name": "finRegionCountryCorrecting"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          Index as short,",
+				"          City as string,",
+				"          Country as string,",
+				"          Territory as string,",
+				"          {Full Name} as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> finRegionSource",
+				"finRegionSource derive(Country = iif(Country == 'Ausstralia', 'Australia',Country)) ~> finRegionCountryCorrecting",
+				"finRegionCountryCorrecting sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          region_id as integer,",
+				"          city as string,",
+				"          country as string,",
+				"          territory as string,",
+				"          {full name} as string",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          region_id = Index,",
+				"          city = City,",
+				"          country = Country,",
+				"          territory = Territory,",
+				"          {full name} = {Full Name}",
+				"     )) ~> finRegionstaging"
+			]
+		}
+	}
+}

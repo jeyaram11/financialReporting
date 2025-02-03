@@ -1,0 +1,43 @@
+{
+	"name": "finRegionSourceExcel",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureBlobStorage",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Excel",
+		"typeProperties": {
+			"sheetName": "Regions",
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": "regions.xlsx",
+				"folderPath": "dimensions",
+				"container": "raw"
+			},
+			"firstRowAsHeader": true
+		},
+		"schema": [
+			{
+				"name": "Index",
+				"type": "String"
+			},
+			{
+				"name": "City",
+				"type": "String"
+			},
+			{
+				"name": "Country",
+				"type": "String"
+			},
+			{
+				"name": "Territory",
+				"type": "String"
+			},
+			{
+				"name": "Full Name",
+				"type": "String"
+			}
+		]
+	}
+}
