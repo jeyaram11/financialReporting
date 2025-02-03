@@ -5,6 +5,9 @@
 			"referenceName": "ls_sql_jtechfinance",
 			"type": "LinkedServiceReference"
 		},
+		"folder": {
+			"name": "fin_region"
+		},
 		"annotations": [],
 		"type": "AzureSqlTable",
 		"schema": [

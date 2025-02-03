@@ -1,6 +1,9 @@
 {
 	"name": "df_build_region",
 	"properties": {
+		"folder": {
+			"name": "fin_region"
+		},
 		"type": "MappingDataFlow",
 		"typeProperties": {
 			"sources": [
