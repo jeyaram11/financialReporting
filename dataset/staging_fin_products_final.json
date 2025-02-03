@@ -1,0 +1,26 @@
+{
+	"name": "staging_fin_products_final",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_sql_jtechfinance",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "product_no",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "product_name",
+				"type": "nvarchar"
+			}
+		],
+		"typeProperties": {
+			"schema": "stage",
+			"table": "fin_Products"
+		}
+	}
+}

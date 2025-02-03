@@ -18,7 +18,7 @@
 			"sinks": [
 				{
 					"dataset": {
-						"referenceName": "fin_staging_products",
+						"referenceName": "staging_fin_products_final",
 						"type": "DatasetReference"
 					},
 					"name": "stageProductSink"
@@ -36,7 +36,7 @@
 				"dimProductSource sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
-				"          product_id as integer,",
+				"          product_no as integer,",
 				"          product_name as string",
 				"     ),",
 				"     deletable:false,",
@@ -49,7 +49,7 @@
 				"     skipDuplicateMapOutputs: true,",
 				"     errorHandlingOption: 'stopOnFirstError',",
 				"     mapColumn(",
-				"          product_id = Index,",
+				"          product_no = Index,",
 				"          product_name = {Product Name}",
 				"     )) ~> stageProductSink"
 			]
