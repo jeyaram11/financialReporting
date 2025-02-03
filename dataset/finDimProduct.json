@@ -1,0 +1,30 @@
+{
+	"name": "finDimProduct",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_sql_jtechfinance",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "product_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "product_name",
+				"type": "nvarchar"
+			},
+			{
+				"name": "IsRowCurrent",
+				"type": "bit"
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "fin_Products"
+		}
+	}
+}
