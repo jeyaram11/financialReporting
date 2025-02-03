@@ -225,6 +225,9 @@
 					"referenceName": "AzureBlobStorage",
 					"type": "LinkedServiceReference"
 				},
+				"folder": {
+					"name": "fin_region"
+				},
 				"annotations": [],
 				"type": "Excel",
 				"typeProperties": {
@@ -270,6 +273,9 @@
 				"linkedServiceName": {
 					"referenceName": "ls_sql_jtechfinance",
 					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "fin_region"
 				},
 				"annotations": [],
 				"type": "AzureSqlTable",

@@ -2141,6 +2141,9 @@
 				"policy": {
 					"elapsedTimeMetric": {}
 				},
+				"folder": {
+					"name": "fin_region"
+				},
 				"annotations": []
 			},
 			"dependsOn": [
@@ -3970,6 +3973,9 @@
 					"referenceName": "AzureBlobStorage",
 					"type": "LinkedServiceReference"
 				},
+				"folder": {
+					"name": "fin_region"
+				},
 				"annotations": [],
 				"type": "Excel",
 				"typeProperties": {
@@ -4017,6 +4023,9 @@
 				"linkedServiceName": {
 					"referenceName": "ls_sql_jtechfinance",
 					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "fin_region"
 				},
 				"annotations": [],
 				"type": "AzureSqlTable",
@@ -5759,6 +5768,9 @@
 			"type": "Microsoft.DataFactory/factories/dataflows",
 			"apiVersion": "2018-06-01",
 			"properties": {
+				"folder": {
+					"name": "fin_region"
+				},
 				"type": "MappingDataFlow",
 				"typeProperties": {
 					"sources": [
@@ -5809,6 +5821,7 @@
 						"     insertable:true,",
 						"     updateable:false,",
 						"     upsertable:false,",
+						"     truncate:true,",
 						"     format: 'table',",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true,",
