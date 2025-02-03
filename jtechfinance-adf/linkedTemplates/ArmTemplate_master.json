@@ -7,6 +7,10 @@
 			"metadata": "Data Factory name",
 			"defaultValue": "jtechfinance-adf"
 		},
+		"AzureBlobStorage_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'AzureBlobStorage'"
+		},
 		"AzureSqlDatabase1_password": {
 			"type": "secureString",
 			"metadata": "Secure string for 'password' of 'AzureSqlDatabase1'"
@@ -81,6 +85,9 @@
 				"parameters": {
 					"factoryName": {
 						"value": "[parameters('factoryName')]"
+					},
+					"AzureBlobStorage_connectionString": {
+						"value": "[parameters('AzureBlobStorage_connectionString')]"
 					},
 					"AzureSqlDatabase1_password": {
 						"value": "[parameters('AzureSqlDatabase1_password')]"
@@ -172,9 +179,6 @@
 				"parameters": {
 					"factoryName": {
 						"value": "[parameters('factoryName')]"
-					},
-					"tr_event_load_newfiles_properties_typeProperties_scope": {
-						"value": "[parameters('tr_event_load_newfiles_properties_typeProperties_scope')]"
 					}
 				}
 			},
@@ -195,6 +199,9 @@
 				"parameters": {
 					"factoryName": {
 						"value": "[parameters('factoryName')]"
+					},
+					"tr_event_load_newfiles_properties_typeProperties_scope": {
+						"value": "[parameters('tr_event_load_newfiles_properties_typeProperties_scope')]"
 					}
 				}
 			},

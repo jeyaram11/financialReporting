@@ -5,6 +5,9 @@
 		"factoryName": {
 			"value": "jtechfinance-adf"
 		},
+		"AzureBlobStorage_connectionString": {
+			"value": ""
+		},
 		"AzureSqlDatabase1_password": {
 			"value": ""
 		},

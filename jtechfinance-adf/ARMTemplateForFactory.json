@@ -7,6 +7,10 @@
 			"metadata": "Data Factory name",
 			"defaultValue": "jtechfinance-adf"
 		},
+		"AzureBlobStorage_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'AzureBlobStorage'"
+		},
 		"AzureSqlDatabase1_password": {
 			"type": "secureString",
 			"metadata": "Secure string for 'password' of 'AzureSqlDatabase1'"
@@ -2098,6 +2102,52 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/pl_load_regions_staging')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Data flow1",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "finRegionStagingPipeline",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"finRegionSource": {},
+									"finRegionstaging": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/finRegionStagingPipeline')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/pl_masterSales')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -3912,6 +3962,97 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/finRegionSourceExcel')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureBlobStorage",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Excel",
+				"typeProperties": {
+					"sheetName": "Regions",
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "regions.xlsx",
+						"folderPath": "dimensions",
+						"container": "raw"
+					},
+					"firstRowAsHeader": true
+				},
+				"schema": [
+					{
+						"name": "Index",
+						"type": "String"
+					},
+					{
+						"name": "City",
+						"type": "String"
+					},
+					{
+						"name": "Country",
+						"type": "String"
+					},
+					{
+						"name": "Territory",
+						"type": "String"
+					},
+					{
+						"name": "Full Name",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureBlobStorage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/finRegionStageSQL')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_sql_jtechfinance",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "region_id",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "city",
+						"type": "nvarchar"
+					},
+					{
+						"name": "country",
+						"type": "nvarchar"
+					},
+					{
+						"name": "territory",
+						"type": "nvarchar"
+					},
+					{
+						"name": "full name",
+						"type": "nvarchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "stage",
+					"table": "fin_Regions"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_sql_jtechfinance')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/sql_dim_store')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -4243,6 +4384,19 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/AzureBlobStorage')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobStorage",
+				"typeProperties": {
+					"connectionString": "[parameters('AzureBlobStorage_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/AzureSqlDatabase1')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
@@ -4407,6 +4561,16 @@
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/pipelines/pl_master_schedule')]"
 			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/integrationRuntime1')]",
+			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "SelfHosted",
+				"typeProperties": {}
+			},
+			"dependsOn": []
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/dataflow1')]",
@@ -5588,6 +5752,80 @@
 				"[concat(variables('factoryId'), '/datasets/sql_stage_product_table')]",
 				"[concat(variables('factoryId'), '/datasets/ProductDimension')]",
 				"[concat(variables('factoryId'), '/datasets/dimProduct')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/finRegionStagingPipeline')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "finRegionSourceExcel",
+								"type": "DatasetReference"
+							},
+							"name": "finRegionSource"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "finRegionStageSQL",
+								"type": "DatasetReference"
+							},
+							"name": "finRegionstaging"
+						}
+					],
+					"transformations": [
+						{
+							"name": "finRegionCountryCorrecting"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          Index as short,",
+						"          City as string,",
+						"          Country as string,",
+						"          Territory as string,",
+						"          {Full Name} as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> finRegionSource",
+						"finRegionSource derive(Country = iif(Country == 'Ausstralia', 'Australia',Country)) ~> finRegionCountryCorrecting",
+						"finRegionCountryCorrecting sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          region_id as integer,",
+						"          city as string,",
+						"          country as string,",
+						"          territory as string,",
+						"          {full name} as string",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          region_id = Index,",
+						"          city = City,",
+						"          country = Country,",
+						"          territory = Territory,",
+						"          {full name} = {Full Name}",
+						"     )) ~> finRegionstaging"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/finRegionSourceExcel')]",
+				"[concat(variables('factoryId'), '/datasets/finRegionStageSQL')]"
 			]
 		},
 		{
