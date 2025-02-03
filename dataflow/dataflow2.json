@@ -69,6 +69,9 @@
 				},
 				{
 					"name": "setActiveRow"
+				},
+				{
+					"name": "typ2changeinsert"
 				}
 			],
 			"scriptLines": [
@@ -122,8 +125,12 @@
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> setInactiveRowUpdates",
 				"setInactiveRowUpdates alterRow(updateIf(true())) ~> flagUpdates",
-				"NewandOldProducts@Existing derive(IsRowCurrent = 1,",
+				"typ2changeinsert derive(IsRowCurrent = 1,",
 				"          EffectiveDate = currentTimestamp()) ~> setActiveRow",
+				"NewandOldProducts@Existing, filterActive exists(equals(NewandOldProducts@Existing@product_no,dimProducts@product_no) &&",
+				"(NewandOldProducts@Existing@product_name != dimProducts@product_name),",
+				"     negate:false,",
+				"     broadcast: 'left')~> typ2changeinsert",
 				"newProductscolumns sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
