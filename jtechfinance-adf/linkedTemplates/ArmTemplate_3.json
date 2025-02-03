@@ -13,6 +13,73 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/abs_json_raw_Verde_param')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_jtechfinance_dev",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"filename": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "Practice"
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().filename",
+							"type": "Expression"
+						},
+						"folderPath": "sampledata/Verde",
+						"fileSystem": "raw"
+					}
+				},
+				"schema": {
+					"type": "object",
+					"properties": {
+						"YearMonth": {
+							"type": "string"
+						},
+						"StoreName": {
+							"type": "string"
+						},
+						"Sales": {
+							"type": "object",
+							"properties": {
+								"Product": {
+									"type": "string"
+								},
+								"Vintage": {
+									"type": "string"
+								},
+								"Variety": {
+									"type": "string"
+								},
+								"Score": {
+									"type": "string"
+								},
+								"SalesPrice": {
+									"type": "string"
+								},
+								"SalesQty": {
+									"type": "string"
+								}
+							}
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/ads_json_raw_Verde')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -627,7 +694,7 @@
 					"sources": [
 						{
 							"dataset": {
-								"referenceName": "fin_staging_products",
+								"referenceName": "staging_fin_products_final",
 								"type": "DatasetReference"
 							},
 							"name": "sourceProducts"
@@ -683,9 +750,6 @@
 							"name": "setinactive"
 						},
 						{
-							"name": "setInactiveRowUpdates"
-						},
-						{
 							"name": "flagUpdates"
 						},
 						{
@@ -697,7 +761,7 @@
 					],
 					"scriptLines": [
 						"source(output(",
-						"          product_id as integer,",
+						"          product_no as integer,",
 						"          product_name as string",
 						"     ),",
 						"     allowSchemaDrift: true,",
@@ -717,35 +781,25 @@
 						"     validateSchema: false,",
 						"     isolationLevel: 'READ_UNCOMMITTED',",
 						"     format: 'table') ~> dimProducts",
-						"sourceProducts, filterActive join(sourceProducts@product_id == product_no,",
+						"sourceProducts, filterActive join(sourceProducts@product_no == dimProducts@product_no,",
 						"     joinType:'left',",
 						"     matchType:'exact',",
 						"     ignoreSpaces: false,",
 						"     broadcast: 'auto')~> checkProducts",
-						"checkProducts split(isNull(product_no),",
+						"checkProducts split(isNull(dimProducts@product_no),",
 						"     disjoint: false) ~> NewandOldProducts@(NewProducts, Existing)",
 						"dimProducts filter(IsRowCurrent == true()) ~> filterActive",
 						"NewandOldProducts@NewProducts derive(UpdatedDate = currentTimestamp(),",
 						"          IsRowCurrent = 1,",
 						"          EffectiveDate = currentTimestamp(),",
 						"          EndDate = toDate('2025-12-31')) ~> newProductscolumns",
-						"NewandOldProducts@Existing, filterActive exists(equals(NewandOldProducts@Existing@product_no,dimProducts@product_no) &&\r",
+						"NewandOldProducts@Existing, filterActive exists(equals(NewandOldProducts@Existing@product_no,dimProducts@product_no) &&",
 						"(NewandOldProducts@Existing@product_name != dimProducts@product_name),",
 						"     negate:false,",
-						"     broadcast: 'left')~> Type2ChangeExists",
+						"     broadcast: 'auto')~> Type2ChangeExists",
 						"Type2ChangeExists derive(IsRowCurrent = false(),",
-						"          EndDate = currentTimestamp(),",
-						"          product_id = NewandOldProducts@Existing@product_id) ~> setinactive",
-						"setinactive select(mapColumn(",
-						"          product_id,",
-						"          UpdatedDate,",
-						"          IsRowCurrent,",
-						"          EffectiveDate,",
-						"          EndDate",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> setInactiveRowUpdates",
-						"setInactiveRowUpdates alterRow(updateIf(true())) ~> flagUpdates",
+						"          EndDate = currentTimestamp()) ~> setinactive",
+						"setinactive alterRow(updateIf(true())) ~> flagUpdates",
 						"typ2changeinsert derive(IsRowCurrent = 1,",
 						"          EffectiveDate = currentTimestamp()) ~> setActiveRow",
 						"NewandOldProducts@Existing, filterActive exists(equals(NewandOldProducts@Existing@product_no,dimProducts@product_no) &&",
@@ -772,7 +826,7 @@
 						"     skipDuplicateMapOutputs: true,",
 						"     errorHandlingOption: 'stopOnFirstError',",
 						"     mapColumn(",
-						"          product_no = NewandOldProducts@NewProducts@product_id,",
+						"          product_no = product_id,",
 						"          product_name = NewandOldProducts@NewProducts@product_name,",
 						"          UpdatedDate,",
 						"          IsRowCurrent,",
@@ -859,7 +913,7 @@
 					"sinks": [
 						{
 							"dataset": {
-								"referenceName": "fin_staging_products",
+								"referenceName": "staging_fin_products_final",
 								"type": "DatasetReference"
 							},
 							"name": "stageProductSink"
@@ -877,7 +931,7 @@
 						"dimProductSource sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     input(",
-						"          product_id as integer,",
+						"          product_no as integer,",
 						"          product_name as string",
 						"     ),",
 						"     deletable:false,",
@@ -890,7 +944,7 @@
 						"     skipDuplicateMapOutputs: true,",
 						"     errorHandlingOption: 'stopOnFirstError',",
 						"     mapColumn(",
-						"          product_id = Index,",
+						"          product_no = Index,",
 						"          product_name = {Product Name}",
 						"     )) ~> stageProductSink"
 					]
@@ -1943,160 +1997,9 @@
 				"lastPublishTime": "2025-01-09T09:54:40Z"
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/ads_json_raw_Verde')]"
+				"[concat(variables('factoryId'), '/datasets/ads_json_raw_Verde')]",
+				"[concat(variables('factoryId'), '/datasets/abs_json_raw_Verde_param')]"
 			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/pl_LoadStaging_MasterAndProduct')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "GetMetadata",
-						"type": "Lookup",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzureSqlSource",
-								"sqlReaderQuery": "SELECT * FROM dbo.ADF_Metadata where FolderName in ('masterdata','productdata')",
-								"queryTimeout": "02:00:00",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "sql_stage_dynamic",
-								"type": "DatasetReference",
-								"parameters": {
-									"TableName": "_notSet"
-								}
-							},
-							"firstRowOnly": false
-						}
-					},
-					{
-						"name": "Loop over Metadata",
-						"type": "ForEach",
-						"dependsOn": [
-							{
-								"activity": "GetMetadata",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"items": {
-								"value": "@activity('GetMetadata').output.value",
-								"type": "Expression"
-							},
-							"activities": [
-								{
-									"name": "LoadDataToSQL",
-									"type": "Copy",
-									"dependsOn": [],
-									"policy": {
-										"timeout": "0.12:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"source": {
-											"type": "DelimitedTextSource",
-											"storeSettings": {
-												"type": "AzureBlobFSReadSettings",
-												"recursive": true,
-												"wildcardFolderPath": {
-													"value": "@item().FolderName",
-													"type": "Expression"
-												},
-												"wildcardFileName": {
-													"value": "@item().FileName",
-													"type": "Expression"
-												},
-												"enablePartitionDiscovery": false
-											},
-											"formatSettings": {
-												"type": "DelimitedTextReadSettings"
-											}
-										},
-										"sink": {
-											"type": "AzureSqlSink",
-											"preCopyScript": {
-												"value": "TRUNCATE TABLE stage.@{item().TableName}",
-												"type": "Expression"
-											},
-											"writeBehavior": "insert",
-											"sqlWriterUseTableLock": false
-										},
-										"enableStaging": false,
-										"translator": {
-											"type": "TabularTranslator",
-											"typeConversion": true,
-											"typeConversionSettings": {
-												"allowDataTruncation": true,
-												"treatBooleanAsNumber": false
-											}
-										}
-									},
-									"inputs": [
-										{
-											"referenceName": "abs_csv_cleansed_stage",
-											"type": "DatasetReference",
-											"parameters": {
-												"FolderName": {
-													"value": "@item().FolderName",
-													"type": "Expression"
-												},
-												"FileName": {
-													"value": "@item().FileName",
-													"type": "Expression"
-												},
-												"Delimiter": {
-													"value": "@item().Delimiter",
-													"type": "Expression"
-												}
-											}
-										}
-									],
-									"outputs": [
-										{
-											"referenceName": "sql_stage_dynamic",
-											"type": "DatasetReference",
-											"parameters": {
-												"TableName": {
-													"value": "@item().TableName",
-													"type": "Expression"
-												}
-											}
-										}
-									]
-								}
-							]
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "Practice/08. Exercise"
-				},
-				"annotations": [],
-				"lastPublishTime": "2025-01-09T09:54:40Z"
-			},
-			"dependsOn": []
 		}
 	]
 }

@@ -4724,6 +4724,37 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/staging_fin_products_final')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_sql_jtechfinance",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "product_no",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "product_name",
+						"type": "nvarchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "stage",
+					"table": "fin_Products"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_sql_jtechfinance')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/zip_destination')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -6274,7 +6305,7 @@
 					"sources": [
 						{
 							"dataset": {
-								"referenceName": "fin_staging_products",
+								"referenceName": "staging_fin_products_final",
 								"type": "DatasetReference"
 							},
 							"name": "sourceProducts"
@@ -6330,9 +6361,6 @@
 							"name": "setinactive"
 						},
 						{
-							"name": "setInactiveRowUpdates"
-						},
-						{
 							"name": "flagUpdates"
 						},
 						{
@@ -6344,7 +6372,7 @@
 					],
 					"scriptLines": [
 						"source(output(",
-						"          product_id as integer,",
+						"          product_no as integer,",
 						"          product_name as string",
 						"     ),",
 						"     allowSchemaDrift: true,",
@@ -6364,35 +6392,25 @@
 						"     validateSchema: false,",
 						"     isolationLevel: 'READ_UNCOMMITTED',",
 						"     format: 'table') ~> dimProducts",
-						"sourceProducts, filterActive join(sourceProducts@product_id == product_no,",
+						"sourceProducts, filterActive join(sourceProducts@product_no == dimProducts@product_no,",
 						"     joinType:'left',",
 						"     matchType:'exact',",
 						"     ignoreSpaces: false,",
 						"     broadcast: 'auto')~> checkProducts",
-						"checkProducts split(isNull(product_no),",
+						"checkProducts split(isNull(dimProducts@product_no),",
 						"     disjoint: false) ~> NewandOldProducts@(NewProducts, Existing)",
 						"dimProducts filter(IsRowCurrent == true()) ~> filterActive",
 						"NewandOldProducts@NewProducts derive(UpdatedDate = currentTimestamp(),",
 						"          IsRowCurrent = 1,",
 						"          EffectiveDate = currentTimestamp(),",
 						"          EndDate = toDate('2025-12-31')) ~> newProductscolumns",
-						"NewandOldProducts@Existing, filterActive exists(equals(NewandOldProducts@Existing@product_no,dimProducts@product_no) &&\r",
+						"NewandOldProducts@Existing, filterActive exists(equals(NewandOldProducts@Existing@product_no,dimProducts@product_no) &&",
 						"(NewandOldProducts@Existing@product_name != dimProducts@product_name),",
 						"     negate:false,",
-						"     broadcast: 'left')~> Type2ChangeExists",
+						"     broadcast: 'auto')~> Type2ChangeExists",
 						"Type2ChangeExists derive(IsRowCurrent = false(),",
-						"          EndDate = currentTimestamp(),",
-						"          product_id = NewandOldProducts@Existing@product_id) ~> setinactive",
-						"setinactive select(mapColumn(",
-						"          product_id,",
-						"          UpdatedDate,",
-						"          IsRowCurrent,",
-						"          EffectiveDate,",
-						"          EndDate",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> setInactiveRowUpdates",
-						"setInactiveRowUpdates alterRow(updateIf(true())) ~> flagUpdates",
+						"          EndDate = currentTimestamp()) ~> setinactive",
+						"setinactive alterRow(updateIf(true())) ~> flagUpdates",
 						"typ2changeinsert derive(IsRowCurrent = 1,",
 						"          EffectiveDate = currentTimestamp()) ~> setActiveRow",
 						"NewandOldProducts@Existing, filterActive exists(equals(NewandOldProducts@Existing@product_no,dimProducts@product_no) &&",
@@ -6419,7 +6437,7 @@
 						"     skipDuplicateMapOutputs: true,",
 						"     errorHandlingOption: 'stopOnFirstError',",
 						"     mapColumn(",
-						"          product_no = NewandOldProducts@NewProducts@product_id,",
+						"          product_no = product_id,",
 						"          product_name = NewandOldProducts@NewProducts@product_name,",
 						"          UpdatedDate,",
 						"          IsRowCurrent,",
@@ -6483,7 +6501,7 @@
 				}
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/fin_staging_products')]",
+				"[concat(variables('factoryId'), '/datasets/staging_fin_products_final')]",
 				"[concat(variables('factoryId'), '/datasets/fin_dim_products')]"
 			]
 		},
@@ -6509,7 +6527,7 @@
 					"sinks": [
 						{
 							"dataset": {
-								"referenceName": "fin_staging_products",
+								"referenceName": "staging_fin_products_final",
 								"type": "DatasetReference"
 							},
 							"name": "stageProductSink"
@@ -6527,7 +6545,7 @@
 						"dimProductSource sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     input(",
-						"          product_id as integer,",
+						"          product_no as integer,",
 						"          product_name as string",
 						"     ),",
 						"     deletable:false,",
@@ -6540,7 +6558,7 @@
 						"     skipDuplicateMapOutputs: true,",
 						"     errorHandlingOption: 'stopOnFirstError',",
 						"     mapColumn(",
-						"          product_id = Index,",
+						"          product_no = Index,",
 						"          product_name = {Product Name}",
 						"     )) ~> stageProductSink"
 					]
@@ -6548,7 +6566,7 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/productSource')]",
-				"[concat(variables('factoryId'), '/datasets/fin_staging_products')]"
+				"[concat(variables('factoryId'), '/datasets/staging_fin_products_final')]"
 			]
 		},
 		{
