@@ -121,225 +121,6 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/dataflow2')]",
-			"type": "Microsoft.DataFactory/factories/dataflows",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [
-						{
-							"dataset": {
-								"referenceName": "fin_staging_products",
-								"type": "DatasetReference"
-							},
-							"name": "sourceProducts"
-						},
-						{
-							"dataset": {
-								"referenceName": "fin_dim_products",
-								"type": "DatasetReference"
-							},
-							"name": "dimProducts"
-						}
-					],
-					"sinks": [
-						{
-							"dataset": {
-								"referenceName": "fin_dim_products",
-								"type": "DatasetReference"
-							},
-							"name": "sinkDimProducts"
-						},
-						{
-							"dataset": {
-								"referenceName": "fin_dim_products",
-								"type": "DatasetReference"
-							},
-							"name": "sinkInactiveProducts"
-						},
-						{
-							"dataset": {
-								"referenceName": "fin_dim_products",
-								"type": "DatasetReference"
-							},
-							"name": "sinkActiveRecords"
-						}
-					],
-					"transformations": [
-						{
-							"name": "checkProducts"
-						},
-						{
-							"name": "NewandOldProducts"
-						},
-						{
-							"name": "filterActive"
-						},
-						{
-							"name": "newProductscolumns"
-						},
-						{
-							"name": "Type2ChangeExists"
-						},
-						{
-							"name": "setinactive"
-						},
-						{
-							"name": "setInactiveRowUpdates"
-						},
-						{
-							"name": "flagUpdates"
-						},
-						{
-							"name": "setActiveRow"
-						},
-						{
-							"name": "typ2changeinsert"
-						}
-					],
-					"scriptLines": [
-						"source(output(",
-						"          product_id as integer,",
-						"          product_name as string",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     isolationLevel: 'READ_UNCOMMITTED',",
-						"     format: 'table') ~> sourceProducts",
-						"source(output(",
-						"          product_id as integer,",
-						"          product_no as integer,",
-						"          product_name as string,",
-						"          UpdatedDate as timestamp,",
-						"          IsRowCurrent as boolean,",
-						"          EffectiveDate as timestamp,",
-						"          EndDate as timestamp",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     isolationLevel: 'READ_UNCOMMITTED',",
-						"     format: 'table') ~> dimProducts",
-						"sourceProducts, filterActive join(sourceProducts@product_id == product_no,",
-						"     joinType:'left',",
-						"     matchType:'exact',",
-						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> checkProducts",
-						"checkProducts split(isNull(product_no),",
-						"     disjoint: false) ~> NewandOldProducts@(NewProducts, Existing)",
-						"dimProducts filter(IsRowCurrent == true()) ~> filterActive",
-						"NewandOldProducts@NewProducts derive(UpdatedDate = currentTimestamp(),",
-						"          IsRowCurrent = 1,",
-						"          EffectiveDate = currentTimestamp(),",
-						"          EndDate = toDate('2025-12-31')) ~> newProductscolumns",
-						"NewandOldProducts@Existing, filterActive exists(equals(NewandOldProducts@Existing@product_no,dimProducts@product_no) &&\r",
-						"(NewandOldProducts@Existing@product_name != dimProducts@product_name),",
-						"     negate:false,",
-						"     broadcast: 'auto')~> Type2ChangeExists",
-						"Type2ChangeExists derive(IsRowCurrent = 0,",
-						"          EndDate = currentTimestamp(),",
-						"          product_id = NewandOldProducts@Existing@product_id) ~> setinactive",
-						"setinactive select(mapColumn(",
-						"          product_id,",
-						"          UpdatedDate,",
-						"          IsRowCurrent,",
-						"          EffectiveDate,",
-						"          EndDate",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> setInactiveRowUpdates",
-						"setInactiveRowUpdates alterRow(updateIf(true())) ~> flagUpdates",
-						"typ2changeinsert derive(IsRowCurrent = 1,",
-						"          EffectiveDate = currentTimestamp()) ~> setActiveRow",
-						"NewandOldProducts@Existing, filterActive exists(equals(NewandOldProducts@Existing@product_no,dimProducts@product_no) &&",
-						"(NewandOldProducts@Existing@product_name != dimProducts@product_name),",
-						"     negate:false,",
-						"     broadcast: 'left')~> typ2changeinsert",
-						"newProductscolumns sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     input(",
-						"          product_id as integer,",
-						"          product_no as integer,",
-						"          product_name as string,",
-						"          UpdatedDate as timestamp,",
-						"          IsRowCurrent as boolean,",
-						"          EffectiveDate as timestamp,",
-						"          EndDate as timestamp",
-						"     ),",
-						"     deletable:false,",
-						"     insertable:true,",
-						"     updateable:false,",
-						"     upsertable:false,",
-						"     format: 'table',",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true,",
-						"     errorHandlingOption: 'stopOnFirstError',",
-						"     mapColumn(",
-						"          product_no = NewandOldProducts@NewProducts@product_id,",
-						"          product_name = NewandOldProducts@NewProducts@product_name,",
-						"          UpdatedDate,",
-						"          IsRowCurrent,",
-						"          EffectiveDate,",
-						"          EndDate",
-						"     )) ~> sinkDimProducts",
-						"flagUpdates sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     input(",
-						"          product_id as integer,",
-						"          product_no as integer,",
-						"          product_name as string,",
-						"          UpdatedDate as timestamp,",
-						"          IsRowCurrent as boolean,",
-						"          EffectiveDate as timestamp,",
-						"          EndDate as timestamp",
-						"     ),",
-						"     deletable:false,",
-						"     insertable:false,",
-						"     updateable:true,",
-						"     upsertable:false,",
-						"     keys:['product_id'],",
-						"     format: 'table',",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true,",
-						"     errorHandlingOption: 'stopOnFirstError',",
-						"     mapColumn(",
-						"          product_id,",
-						"          IsRowCurrent,",
-						"          EndDate",
-						"     )) ~> sinkInactiveProducts",
-						"setActiveRow sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     input(",
-						"          product_id as integer,",
-						"          product_no as integer,",
-						"          product_name as string,",
-						"          UpdatedDate as timestamp,",
-						"          IsRowCurrent as boolean,",
-						"          EffectiveDate as timestamp,",
-						"          EndDate as timestamp",
-						"     ),",
-						"     deletable:false,",
-						"     insertable:true,",
-						"     updateable:false,",
-						"     upsertable:false,",
-						"     format: 'table',",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true,",
-						"     errorHandlingOption: 'stopOnFirstError',",
-						"     mapColumn(",
-						"          product_no,",
-						"          product_name = NewandOldProducts@Existing@product_name,",
-						"          UpdatedDate,",
-						"          IsRowCurrent,",
-						"          EffectiveDate,",
-						"          EndDate",
-						"     )) ~> sinkActiveRecords"
-					]
-				}
-			},
-			"dependsOn": []
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/db_Build_dimStore')]",
 			"type": "Microsoft.DataFactory/factories/dataflows",
 			"apiVersion": "2018-06-01",
@@ -831,6 +612,225 @@
 						"          InsertedDate,",
 						"          UpdatedDate",
 						"     )) ~> dimRegion"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_finproductsDim')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "fin_staging_products",
+								"type": "DatasetReference"
+							},
+							"name": "sourceProducts"
+						},
+						{
+							"dataset": {
+								"referenceName": "fin_dim_products",
+								"type": "DatasetReference"
+							},
+							"name": "dimProducts"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "fin_dim_products",
+								"type": "DatasetReference"
+							},
+							"name": "sinkDimProducts"
+						},
+						{
+							"dataset": {
+								"referenceName": "fin_dim_products",
+								"type": "DatasetReference"
+							},
+							"name": "sinkInactiveProducts"
+						},
+						{
+							"dataset": {
+								"referenceName": "fin_dim_products",
+								"type": "DatasetReference"
+							},
+							"name": "sinkActiveRecords"
+						}
+					],
+					"transformations": [
+						{
+							"name": "checkProducts"
+						},
+						{
+							"name": "NewandOldProducts"
+						},
+						{
+							"name": "filterActive"
+						},
+						{
+							"name": "newProductscolumns"
+						},
+						{
+							"name": "Type2ChangeExists"
+						},
+						{
+							"name": "setinactive"
+						},
+						{
+							"name": "setInactiveRowUpdates"
+						},
+						{
+							"name": "flagUpdates"
+						},
+						{
+							"name": "setActiveRow"
+						},
+						{
+							"name": "typ2changeinsert"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          product_id as integer,",
+						"          product_name as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> sourceProducts",
+						"source(output(",
+						"          product_id as integer,",
+						"          product_no as integer,",
+						"          product_name as string,",
+						"          UpdatedDate as timestamp,",
+						"          IsRowCurrent as boolean,",
+						"          EffectiveDate as timestamp,",
+						"          EndDate as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> dimProducts",
+						"sourceProducts, filterActive join(sourceProducts@product_id == product_no,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> checkProducts",
+						"checkProducts split(isNull(product_no),",
+						"     disjoint: false) ~> NewandOldProducts@(NewProducts, Existing)",
+						"dimProducts filter(IsRowCurrent == true()) ~> filterActive",
+						"NewandOldProducts@NewProducts derive(UpdatedDate = currentTimestamp(),",
+						"          IsRowCurrent = 1,",
+						"          EffectiveDate = currentTimestamp(),",
+						"          EndDate = toDate('2025-12-31')) ~> newProductscolumns",
+						"NewandOldProducts@Existing, filterActive exists(equals(NewandOldProducts@Existing@product_no,dimProducts@product_no) &&\r",
+						"(NewandOldProducts@Existing@product_name != dimProducts@product_name),",
+						"     negate:false,",
+						"     broadcast: 'auto')~> Type2ChangeExists",
+						"Type2ChangeExists derive(IsRowCurrent = 0,",
+						"          EndDate = currentTimestamp(),",
+						"          product_id = NewandOldProducts@Existing@product_id) ~> setinactive",
+						"setinactive select(mapColumn(",
+						"          product_id,",
+						"          UpdatedDate,",
+						"          IsRowCurrent,",
+						"          EffectiveDate,",
+						"          EndDate",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> setInactiveRowUpdates",
+						"setInactiveRowUpdates alterRow(updateIf(true())) ~> flagUpdates",
+						"typ2changeinsert derive(IsRowCurrent = 1,",
+						"          EffectiveDate = currentTimestamp()) ~> setActiveRow",
+						"NewandOldProducts@Existing, filterActive exists(equals(NewandOldProducts@Existing@product_no,dimProducts@product_no) &&",
+						"(NewandOldProducts@Existing@product_name != dimProducts@product_name),",
+						"     negate:false,",
+						"     broadcast: 'left')~> typ2changeinsert",
+						"newProductscolumns sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          product_id as integer,",
+						"          product_no as integer,",
+						"          product_name as string,",
+						"          UpdatedDate as timestamp,",
+						"          IsRowCurrent as boolean,",
+						"          EffectiveDate as timestamp,",
+						"          EndDate as timestamp",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          product_no = NewandOldProducts@NewProducts@product_id,",
+						"          product_name = NewandOldProducts@NewProducts@product_name,",
+						"          UpdatedDate,",
+						"          IsRowCurrent,",
+						"          EffectiveDate,",
+						"          EndDate",
+						"     )) ~> sinkDimProducts",
+						"flagUpdates sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          product_id as integer,",
+						"          product_no as integer,",
+						"          product_name as string,",
+						"          UpdatedDate as timestamp,",
+						"          IsRowCurrent as boolean,",
+						"          EffectiveDate as timestamp,",
+						"          EndDate as timestamp",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:true,",
+						"     upsertable:false,",
+						"     keys:['product_id'],",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          product_id,",
+						"          IsRowCurrent,",
+						"          EndDate",
+						"     )) ~> sinkInactiveProducts",
+						"setActiveRow sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          product_id as integer,",
+						"          product_no as integer,",
+						"          product_name as string,",
+						"          UpdatedDate as timestamp,",
+						"          IsRowCurrent as boolean,",
+						"          EffectiveDate as timestamp,",
+						"          EndDate as timestamp",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          product_no,",
+						"          product_name = NewandOldProducts@Existing@product_name,",
+						"          UpdatedDate,",
+						"          IsRowCurrent,",
+						"          EffectiveDate,",
+						"          EndDate",
+						"     )) ~> sinkActiveRecords"
 					]
 				}
 			},
@@ -1335,7 +1335,7 @@
 						"userProperties": [],
 						"typeProperties": {
 							"dataflow": {
-								"referenceName": "dataflow2",
+								"referenceName": "df_finproductsDim",
 								"type": "DataFlowReference",
 								"parameters": {},
 								"datasetParameters": {
@@ -1364,7 +1364,7 @@
 				"annotations": []
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/dataflows/dataflow2')]"
+				"[concat(variables('factoryId'), '/dataflows/df_finproductsDim')]"
 			]
 		},
 		{
