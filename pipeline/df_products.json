@@ -16,7 +16,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataflow": {
-						"referenceName": "dataflow2",
+						"referenceName": "df_products_staging_sink",
 						"type": "DataFlowReference"
 					},
 					"compute": {

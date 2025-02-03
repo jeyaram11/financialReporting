@@ -1,6 +1,9 @@
 {
-	"name": "dataflow2",
+	"name": "df_products_staging_sink",
 	"properties": {
+		"folder": {
+			"name": "fin_products"
+		},
 		"type": "MappingDataFlow",
 		"typeProperties": {
 			"sources": [
