@@ -401,6 +401,9 @@
 			"type": "Microsoft.DataFactory/factories/dataflows",
 			"apiVersion": "2018-06-01",
 			"properties": {
+				"folder": {
+					"name": "fin_region"
+				},
 				"type": "MappingDataFlow",
 				"typeProperties": {
 					"sources": [

@@ -2842,6 +2842,9 @@
 					"referenceName": "ls_sql_jtechfinance",
 					"type": "LinkedServiceReference"
 				},
+				"folder": {
+					"name": "fin_region"
+				},
 				"annotations": [],
 				"type": "AzureSqlTable",
 				"schema": [
@@ -4420,6 +4423,9 @@
 					"referenceName": "ls_sql_jtechfinance",
 					"type": "LinkedServiceReference"
 				},
+				"folder": {
+					"name": "fin_region"
+				},
 				"annotations": [],
 				"type": "AzureSqlTable",
 				"schema": [
@@ -5921,6 +5927,9 @@
 			"type": "Microsoft.DataFactory/factories/dataflows",
 			"apiVersion": "2018-06-01",
 			"properties": {
+				"folder": {
+					"name": "fin_region"
+				},
 				"type": "MappingDataFlow",
 				"typeProperties": {
 					"sources": [
