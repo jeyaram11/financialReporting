@@ -1,0 +1,107 @@
+{
+	"name": "df_build_region",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "sql_stage_region",
+						"type": "DatasetReference"
+					},
+					"name": "finStageRegion"
+				},
+				{
+					"dataset": {
+						"referenceName": "SQLDimRegion",
+						"type": "DatasetReference"
+					},
+					"name": "finDimRegion"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "SQLDimRegion",
+						"type": "DatasetReference"
+					},
+					"name": "dimRegion"
+				}
+			],
+			"transformations": [
+				{
+					"name": "checkRegionExists"
+				},
+				{
+					"name": "setInsertUpdateDates"
+				},
+				{
+					"name": "updateOrInsert"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          region_id as integer,",
+				"          city as string,",
+				"          country as string,",
+				"          territory as string,",
+				"          {full name} as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> finStageRegion",
+				"source(output(",
+				"          region_surr_id as integer,",
+				"          region_id as integer,",
+				"          city as string,",
+				"          country as string,",
+				"          territory as string,",
+				"          {full name} as string,",
+				"          InsertedDate as timestamp,",
+				"          UpdatedDate as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> finDimRegion",
+				"finStageRegion, finDimRegion lookup(finStageRegion@region_id == finDimRegion@region_id,",
+				"     multiple: true,",
+				"     broadcast: 'auto')~> checkRegionExists",
+				"checkRegionExists derive(InsertedDate = iif(isNull(InsertedDate), currentTimestamp(), InsertedDate),",
+				"          UpdatedDate = currentTimestamp()) ~> setInsertUpdateDates",
+				"setInsertUpdateDates alterRow(upsertIf(true())) ~> updateOrInsert",
+				"updateOrInsert sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          region_surr_id as integer,",
+				"          region_id as integer,",
+				"          city as string,",
+				"          country as string,",
+				"          territory as string,",
+				"          {full name} as string,",
+				"          InsertedDate as timestamp,",
+				"          UpdatedDate as timestamp",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:false,",
+				"     updateable:false,",
+				"     upsertable:true,",
+				"     keys:['region_id'],",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          region_id = finStageRegion@region_id,",
+				"          city = finStageRegion@city,",
+				"          country = finStageRegion@country,",
+				"          territory = finStageRegion@territory,",
+				"          {full name} = finStageRegion@{full name},",
+				"          InsertedDate,",
+				"          UpdatedDate",
+				"     )) ~> dimRegion"
+			]
+		}
+	}
+}
