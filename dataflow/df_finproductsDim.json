@@ -32,14 +32,14 @@
 						"referenceName": "fin_dim_products",
 						"type": "DatasetReference"
 					},
-					"name": "sinkInactiveProducts"
+					"name": "sinkActiveRecords"
 				},
 				{
 					"dataset": {
 						"referenceName": "fin_dim_products",
 						"type": "DatasetReference"
 					},
-					"name": "sinkActiveRecords"
+					"name": "sinkDimFinProducts"
 				}
 			],
 			"transformations": [
@@ -114,9 +114,9 @@
 				"     broadcast: 'left')~> Type2ChangeExists",
 				"Type2ChangeExists derive(IsRowCurrent = 0,",
 				"          EndDate = currentTimestamp(),",
-				"          product_no = product_no) ~> setinactive",
+				"          product_id = NewandOldProducts@Existing@product_id) ~> setinactive",
 				"setinactive select(mapColumn(",
-				"          product_no,",
+				"          product_id,",
 				"          UpdatedDate,",
 				"          IsRowCurrent,",
 				"          EffectiveDate,",
@@ -158,31 +158,6 @@
 				"          EffectiveDate,",
 				"          EndDate",
 				"     )) ~> sinkDimProducts",
-				"flagUpdates sink(allowSchemaDrift: true,",
-				"     validateSchema: false,",
-				"     input(",
-				"          product_id as integer,",
-				"          product_no as integer,",
-				"          product_name as string,",
-				"          UpdatedDate as timestamp,",
-				"          IsRowCurrent as boolean,",
-				"          EffectiveDate as timestamp,",
-				"          EndDate as timestamp",
-				"     ),",
-				"     deletable:false,",
-				"     insertable:false,",
-				"     updateable:true,",
-				"     upsertable:false,",
-				"     keys:['product_no'],",
-				"     format: 'table',",
-				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true,",
-				"     errorHandlingOption: 'stopOnFirstError',",
-				"     mapColumn(",
-				"          product_no,",
-				"          IsRowCurrent,",
-				"          EndDate",
-				"     )) ~> sinkInactiveProducts",
 				"setActiveRow sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
@@ -209,7 +184,33 @@
 				"          IsRowCurrent,",
 				"          EffectiveDate,",
 				"          EndDate",
-				"     )) ~> sinkActiveRecords"
+				"     )) ~> sinkActiveRecords",
+				"flagUpdates sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          product_id as integer,",
+				"          product_no as integer,",
+				"          product_name as string,",
+				"          UpdatedDate as timestamp,",
+				"          IsRowCurrent as boolean,",
+				"          EffectiveDate as timestamp,",
+				"          EndDate as timestamp",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:true,",
+				"     upsertable:false,",
+				"     keys:['product_id'],",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          UpdatedDate,",
+				"          IsRowCurrent,",
+				"          EffectiveDate,",
+				"          EndDate",
+				"     )) ~> sinkDimFinProducts"
 			]
 		}
 	}
