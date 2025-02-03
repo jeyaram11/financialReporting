@@ -313,6 +313,56 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/fin_build_dim_region')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "pl_build_dim_region",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "df_build_region",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"finStageRegion": {},
+									"finDimRegion": {},
+									"dimRegion": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "fin_region"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/df_build_region')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/pl_Build_dimStore')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -2784,6 +2834,66 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/SQLDimRegion')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_sql_jtechfinance",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "region_surr_id",
+						"type": "smallint",
+						"precision": 5
+					},
+					{
+						"name": "region_id",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "city",
+						"type": "nvarchar"
+					},
+					{
+						"name": "country",
+						"type": "nvarchar"
+					},
+					{
+						"name": "territory",
+						"type": "nvarchar"
+					},
+					{
+						"name": "full name",
+						"type": "nvarchar"
+					},
+					{
+						"name": "InsertedDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "UpdatedDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "fin_Regions"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_sql_jtechfinance')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/SinkError')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -4302,6 +4412,49 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/sql_stage_region')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_sql_jtechfinance",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "region_id",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "city",
+						"type": "nvarchar"
+					},
+					{
+						"name": "country",
+						"type": "nvarchar"
+					},
+					{
+						"name": "territory",
+						"type": "nvarchar"
+					},
+					{
+						"name": "full name",
+						"type": "nvarchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "stage",
+					"table": "fin_Regions"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_sql_jtechfinance')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/sql_stage_store')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -5761,6 +5914,119 @@
 				"[concat(variables('factoryId'), '/datasets/sql_stage_product_table')]",
 				"[concat(variables('factoryId'), '/datasets/ProductDimension')]",
 				"[concat(variables('factoryId'), '/datasets/dimProduct')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_build_region')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "sql_stage_region",
+								"type": "DatasetReference"
+							},
+							"name": "finStageRegion"
+						},
+						{
+							"dataset": {
+								"referenceName": "SQLDimRegion",
+								"type": "DatasetReference"
+							},
+							"name": "finDimRegion"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "SQLDimRegion",
+								"type": "DatasetReference"
+							},
+							"name": "dimRegion"
+						}
+					],
+					"transformations": [
+						{
+							"name": "checkRegionExists"
+						},
+						{
+							"name": "setInsertUpdateDates"
+						},
+						{
+							"name": "updateOrInsert"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          region_id as integer,",
+						"          city as string,",
+						"          country as string,",
+						"          territory as string,",
+						"          {full name} as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> finStageRegion",
+						"source(output(",
+						"          region_surr_id as integer,",
+						"          region_id as integer,",
+						"          city as string,",
+						"          country as string,",
+						"          territory as string,",
+						"          {full name} as string,",
+						"          InsertedDate as timestamp,",
+						"          UpdatedDate as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> finDimRegion",
+						"finStageRegion, finDimRegion lookup(finStageRegion@region_id == finDimRegion@region_id,",
+						"     multiple: true,",
+						"     broadcast: 'auto')~> checkRegionExists",
+						"checkRegionExists derive(InsertedDate = iif(isNull(InsertedDate), currentTimestamp(), InsertedDate),",
+						"          UpdatedDate = currentTimestamp()) ~> setInsertUpdateDates",
+						"setInsertUpdateDates alterRow(upsertIf(true())) ~> updateOrInsert",
+						"updateOrInsert sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          region_surr_id as integer,",
+						"          region_id as integer,",
+						"          city as string,",
+						"          country as string,",
+						"          territory as string,",
+						"          {full name} as string,",
+						"          InsertedDate as timestamp,",
+						"          UpdatedDate as timestamp",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:false,",
+						"     upsertable:true,",
+						"     keys:['region_id'],",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          region_id = finStageRegion@region_id,",
+						"          city = finStageRegion@city,",
+						"          country = finStageRegion@country,",
+						"          territory = finStageRegion@territory,",
+						"          {full name} = finStageRegion@{full name},",
+						"          InsertedDate,",
+						"          UpdatedDate",
+						"     )) ~> dimRegion"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/sql_stage_region')]",
+				"[concat(variables('factoryId'), '/datasets/SQLDimRegion')]"
 			]
 		},
 		{
