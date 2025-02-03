@@ -111,7 +111,7 @@
 				"NewandOldProducts@Existing, filterActive exists(equals(NewandOldProducts@Existing@product_no,dimProducts@product_no) &&\r",
 				"(NewandOldProducts@Existing@product_name != dimProducts@product_name),",
 				"     negate:false,",
-				"     broadcast: 'auto')~> Type2ChangeExists",
+				"     broadcast: 'left')~> Type2ChangeExists",
 				"Type2ChangeExists derive(IsRowCurrent = 0,",
 				"          EndDate = currentTimestamp(),",
 				"          product_id = NewandOldProducts@Existing@product_id) ~> setinactive",
