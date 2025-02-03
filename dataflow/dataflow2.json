@@ -1,0 +1,109 @@
+{
+	"name": "dataflow2",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "fin_staging_products",
+						"type": "DatasetReference"
+					},
+					"name": "sourceProducts"
+				},
+				{
+					"dataset": {
+						"referenceName": "fin_dim_products",
+						"type": "DatasetReference"
+					},
+					"name": "dimProducts"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "fin_dim_products",
+						"type": "DatasetReference"
+					},
+					"name": "sinkDimProducts"
+				}
+			],
+			"transformations": [
+				{
+					"name": "checkProducts"
+				},
+				{
+					"name": "NewandOldProducts"
+				},
+				{
+					"name": "filterActive"
+				},
+				{
+					"name": "newProductscolumns"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          product_id as integer,",
+				"          product_name as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> sourceProducts",
+				"source(output(",
+				"          product_id as integer,",
+				"          product_no as integer,",
+				"          product_name as string,",
+				"          UpdatedDate as timestamp,",
+				"          IsRowCurrent as boolean,",
+				"          EffectiveDate as timestamp,",
+				"          EndDate as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> dimProducts",
+				"sourceProducts, filterActive join(sourceProducts@product_id == product_no,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> checkProducts",
+				"checkProducts split(isNull(product_no),",
+				"     disjoint: false) ~> NewandOldProducts@(NewProducts, Existing)",
+				"dimProducts filter(IsRowCurrent == true()) ~> filterActive",
+				"NewandOldProducts@NewProducts derive(UpdatedDate = currentTimestamp(),",
+				"          IsRowCurrent = 1,",
+				"          EffectiveDate = currentTimestamp(),",
+				"          EndDate = toDate('2025-12-31')) ~> newProductscolumns",
+				"newProductscolumns sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          product_id as integer,",
+				"          product_no as integer,",
+				"          product_name as string,",
+				"          UpdatedDate as timestamp,",
+				"          IsRowCurrent as boolean,",
+				"          EffectiveDate as timestamp,",
+				"          EndDate as timestamp",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          product_no = NewandOldProducts@NewProducts@product_id,",
+				"          product_name = NewandOldProducts@NewProducts@product_name,",
+				"          UpdatedDate,",
+				"          IsRowCurrent,",
+				"          EffectiveDate,",
+				"          EndDate",
+				"     )) ~> sinkDimProducts"
+			]
+		}
+	}
+}
