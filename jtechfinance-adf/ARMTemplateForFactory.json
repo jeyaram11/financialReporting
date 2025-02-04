@@ -65,6 +65,67 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/MasterSalesPipeline')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "SalesStaging",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "SalesCopy",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "SalesDimensions",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "SalesStaging",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "RefreshSalesStoredProcedure",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "sales"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/SalesCopy')]",
+				"[concat(variables('factoryId'), '/pipelines/RefreshSalesStoredProcedure')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/MoveFiles')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -343,7 +404,7 @@
 					"elapsedTimeMetric": {}
 				},
 				"folder": {
-					"name": "fin_products"
+					"name": "sales"
 				},
 				"annotations": []
 			},
@@ -376,7 +437,7 @@
 								"parameters": {},
 								"datasetParameters": {
 									"SalesDataSouce": {},
-									"salesStagingSink": {}
+									"sink1": {}
 								}
 							},
 							"staging": {},
@@ -7174,12 +7235,26 @@
 								"referenceName": "sinkStagingSales_orders",
 								"type": "DatasetReference"
 							},
-							"name": "salesStagingSink"
+							"name": "sink1"
 						}
 					],
 					"transformations": [],
 					"scriptLines": [
-						"source(allowSchemaDrift: true,",
+						"source(output(",
+						"          OrderNumber as string,",
+						"          OrderDate as date,",
+						"          {Customer Name Index} as short,",
+						"          Channel as string,",
+						"          {Currency Code} as string,",
+						"          {Warehouse Code} as string,",
+						"          {Delivery Region Index} as short,",
+						"          {Product Description Index} as short,",
+						"          {Order Quantity} as short,",
+						"          {Unit Price} as double,",
+						"          {Line Total} as double,",
+						"          {Total Unit Cost} as double",
+						"     ),",
+						"     allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     ignoreNoFilesFound: false) ~> SalesDataSouce",
 						"SalesDataSouce sink(allowSchemaDrift: true,",
@@ -7206,7 +7281,20 @@
 						"     format: 'table',",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true,",
-						"     errorHandlingOption: 'stopOnFirstError') ~> salesStagingSink"
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          ordernumber = OrderNumber,",
+						"          orderdate = OrderDate,",
+						"          channel = Channel,",
+						"          currency_code = {Currency Code},",
+						"          warehouse_code = {Warehouse Code},",
+						"          region_id = {Delivery Region Index},",
+						"          product_id = {Product Description Index},",
+						"          order_quantity = {Order Quantity},",
+						"          unit_price = {Unit Price},",
+						"          line_total = {Line Total},",
+						"          total_unit_cost = {Total Unit Cost}",
+						"     )) ~> sink1"
 					]
 				}
 			},
