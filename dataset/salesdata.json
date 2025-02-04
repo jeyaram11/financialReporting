@@ -1,0 +1,21 @@
+{
+	"name": "salesdata",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureBlobStorage",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Excel",
+		"typeProperties": {
+			"sheetName": "Sales Orders",
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": "sales_orders.xlsx",
+				"folderPath": "fact",
+				"container": "raw"
+			}
+		},
+		"schema": []
+	}
+}
