@@ -5,6 +5,9 @@
 			"referenceName": "ls_sql_jtechfinance",
 			"type": "LinkedServiceReference"
 		},
+		"folder": {
+			"name": "fin_products"
+		},
 		"annotations": [],
 		"type": "AzureSqlTable",
 		"schema": [

@@ -5,6 +5,9 @@
 			"referenceName": "AzureBlobStorage",
 			"type": "LinkedServiceReference"
 		},
+		"folder": {
+			"name": "salesdata"
+		},
 		"annotations": [],
 		"type": "Excel",
 		"typeProperties": {

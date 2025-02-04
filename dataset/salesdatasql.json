@@ -1,0 +1,78 @@
+{
+	"name": "salesdatasql",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_sql_jtechfinance",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "salesdata"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "ordernumber",
+				"type": "nvarchar"
+			},
+			{
+				"name": "orderdate",
+				"type": "date"
+			},
+			{
+				"name": "customer name index",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "channel",
+				"type": "nvarchar"
+			},
+			{
+				"name": "currency_code",
+				"type": "nvarchar"
+			},
+			{
+				"name": "warehouse_code",
+				"type": "nvarchar"
+			},
+			{
+				"name": "region_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "product_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "order_quantity",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "unit_price",
+				"type": "decimal",
+				"precision": 10,
+				"scale": 2
+			},
+			{
+				"name": "line_total",
+				"type": "decimal",
+				"precision": 10,
+				"scale": 2
+			},
+			{
+				"name": "total_unit_cost",
+				"type": "decimal",
+				"precision": 10,
+				"scale": 2
+			}
+		],
+		"typeProperties": {
+			"schema": "stage",
+			"table": "fin_sales_orders"
+		}
+	}
+}

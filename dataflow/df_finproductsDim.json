@@ -1,6 +1,9 @@
 {
 	"name": "df_finproductsDim",
 	"properties": {
+		"folder": {
+			"name": "fin_products"
+		},
 		"type": "MappingDataFlow",
 		"typeProperties": {
 			"sources": [
