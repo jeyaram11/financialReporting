@@ -136,9 +136,6 @@
 				"parameters": {
 					"factoryName": {
 						"value": "[parameters('factoryName')]"
-					},
-					"ls_jtechfinance_dev_properties_typeProperties_url": {
-						"value": "[parameters('ls_jtechfinance_dev_properties_typeProperties_url')]"
 					}
 				}
 			},
@@ -159,6 +156,9 @@
 				"parameters": {
 					"factoryName": {
 						"value": "[parameters('factoryName')]"
+					},
+					"ls_jtechfinance_dev_properties_typeProperties_url": {
+						"value": "[parameters('ls_jtechfinance_dev_properties_typeProperties_url')]"
 					}
 				}
 			},

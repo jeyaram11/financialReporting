@@ -313,6 +313,94 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/RefreshSalesStoredProcedure')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "RefreshCurrentMonthSalesTranscations",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[dbo].[RefreshCurrentMonthSalesTranscations]"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_sql_jtechfinance",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "fin_products"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_sql_jtechfinance')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/SalesCopy')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "LoadingSales",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "salesDataSource",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"SalesDataSouce": {},
+									"salesStagingSink": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "sales"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/salesDataSource')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/df_products')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -409,6 +497,67 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/dataflows/df_build_region')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/masterProductsPipeline')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "loadingStageProductsData",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "df_products",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "loadingDimProducts",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "loadingStageProductsData",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "plFinProductsDim",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "fin_products"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/df_products')]",
+				"[concat(variables('factoryId'), '/pipelines/plFinProductsDim')]"
 			]
 		},
 		{
@@ -2998,6 +3147,33 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/SalesExcel')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureBlobStorage",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Excel",
+				"typeProperties": {
+					"sheetName": "Sales Orders",
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "sales_orders.xlsx",
+						"folderPath": "fact",
+						"container": "raw"
+					},
+					"firstRowAsHeader": true
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureBlobStorage')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/SinkError')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -4410,6 +4586,230 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/salesdata')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureBlobStorage",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "salesdata"
+				},
+				"annotations": [],
+				"type": "Excel",
+				"typeProperties": {
+					"sheetName": "Sales Orders",
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "sales_orders.xlsx",
+						"folderPath": "fact",
+						"container": "raw"
+					},
+					"firstRowAsHeader": true
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureBlobStorage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/salesdatasql')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_sql_jtechfinance",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "salesdata"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "ordernumber",
+						"type": "nvarchar"
+					},
+					{
+						"name": "orderdate",
+						"type": "date"
+					},
+					{
+						"name": "customer name index",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "channel",
+						"type": "nvarchar"
+					},
+					{
+						"name": "currency_code",
+						"type": "nvarchar"
+					},
+					{
+						"name": "warehouse_code",
+						"type": "nvarchar"
+					},
+					{
+						"name": "region_id",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "product_id",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "order_quantity",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "unit_price",
+						"type": "decimal",
+						"precision": 10,
+						"scale": 2
+					},
+					{
+						"name": "line_total",
+						"type": "decimal",
+						"precision": 10,
+						"scale": 2
+					},
+					{
+						"name": "total_unit_cost",
+						"type": "decimal",
+						"precision": 10,
+						"scale": 2
+					}
+				],
+				"typeProperties": {
+					"schema": "stage",
+					"table": "fin_sales_orders"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_sql_jtechfinance')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/sinkStagingSales_orders')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_sql_jtechfinance",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "ordernumber",
+						"type": "nvarchar"
+					},
+					{
+						"name": "orderdate",
+						"type": "date"
+					},
+					{
+						"name": "customer_name",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "channel",
+						"type": "nvarchar"
+					},
+					{
+						"name": "currency_code",
+						"type": "nvarchar"
+					},
+					{
+						"name": "warehouse_code",
+						"type": "nvarchar"
+					},
+					{
+						"name": "region_id",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "product_id",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "order_quantity",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "unit_price",
+						"type": "decimal",
+						"precision": 10,
+						"scale": 2
+					},
+					{
+						"name": "line_total",
+						"type": "decimal",
+						"precision": 10,
+						"scale": 2
+					},
+					{
+						"name": "total_unit_cost",
+						"type": "decimal",
+						"precision": 10,
+						"scale": 2
+					}
+				],
+				"typeProperties": {
+					"schema": "stage",
+					"table": "fin_sales_orders"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_sql_jtechfinance')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/sqlStagingSalesTable')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_sql_jtechfinance",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "product_no",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "product_name",
+						"type": "nvarchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "stage",
+					"table": "fin_sales_orders"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_sql_jtechfinance')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/sql_dim_store')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -4952,11 +5352,18 @@
 							"type": "PipelineReference"
 						},
 						"parameters": {}
+					},
+					{
+						"pipelineReference": {
+							"referenceName": "masterProductsPipeline",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
 					}
 				],
 				"type": "BlobEventsTrigger",
 				"typeProperties": {
-					"blobPathBeginsWith": "/raw/blobs/sampledata/Arancione/",
+					"blobPathBeginsWith": "/raw/blobs/",
 					"ignoreEmptyBlobs": true,
 					"scope": "[parameters('tr_event_load_newfiles_properties_typeProperties_scope')]",
 					"events": [
@@ -4965,7 +5372,8 @@
 				}
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/pipelines/pl_masterSales')]"
+				"[concat(variables('factoryId'), '/pipelines/pl_masterSales')]",
+				"[concat(variables('factoryId'), '/pipelines/masterProductsPipeline')]"
 			]
 		},
 		{
@@ -6745,375 +7153,66 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/SalesCopy')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
+			"name": "[concat(parameters('factoryName'), '/salesDataSource')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
 			"apiVersion": "2018-06-01",
 			"properties": {
-				"activities": [
-					{
-						"name": "CopySalesDatatStaging",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "ExcelSource",
-								"storeSettings": {
-									"type": "AzureBlobStorageReadSettings",
-									"recursive": true,
-									"enablePartitionDiscovery": false
-								}
-							},
-							"sink": {
-								"type": "AzureSqlSink",
-								"writeBehavior": "insert",
-								"sqlWriterUseTableLock": false
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "OrderNumber",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "ordernumber",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "OrderDate",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "orderdate",
-											"type": "DateTime",
-											"physicalType": "date"
-										}
-									},
-									{
-										"source": {
-											"name": "Customer Name Index",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "customer name index",
-											"type": "Int32",
-											"physicalType": "int"
-										}
-									},
-									{
-										"source": {
-											"name": "Channel",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "channel",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Currency Code",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "currency_code",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Warehouse Code",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "warehouse_code",
-											"type": "String",
-											"physicalType": "nvarchar"
-										}
-									},
-									{
-										"source": {
-											"name": "Delivery Region Index",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "region_id",
-											"type": "Int32",
-											"physicalType": "int"
-										}
-									},
-									{
-										"source": {
-											"name": "Product Description Index",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "product_id",
-											"type": "Int32",
-											"physicalType": "int"
-										}
-									},
-									{
-										"source": {
-											"name": "Order Quantity",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "order_quantity",
-											"type": "Int32",
-											"physicalType": "int"
-										}
-									},
-									{
-										"source": {
-											"name": "Unit Price",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "unit_price",
-											"type": "Decimal",
-											"physicalType": "decimal",
-											"scale": 2,
-											"precision": 10
-										}
-									},
-									{
-										"source": {
-											"name": "Line Total",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "line_total",
-											"type": "Decimal",
-											"physicalType": "decimal",
-											"scale": 2,
-											"precision": 10
-										}
-									},
-									{
-										"source": {
-											"name": "Total Unit Cost",
-											"type": "String",
-											"physicalType": "String"
-										},
-										"sink": {
-											"name": "total_unit_cost",
-											"type": "Decimal",
-											"physicalType": "decimal",
-											"scale": 2,
-											"precision": 10
-										}
-									}
-								],
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "salesdata",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "salesdatasql",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						]
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "sales"
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/salesdata')]",
-				"[concat(variables('factoryId'), '/datasets/salesdatasql')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/salesdata')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "AzureBlobStorage",
-					"type": "LinkedServiceReference"
-				},
-				"folder": {
-					"name": "salesdata"
-				},
-				"annotations": [],
-				"type": "Excel",
+				"type": "MappingDataFlow",
 				"typeProperties": {
-					"sheetName": "Sales Orders",
-					"location": {
-						"type": "AzureBlobStorageLocation",
-						"fileName": "sales_orders.xlsx",
-						"folderPath": "fact",
-						"container": "raw"
-					},
-					"firstRowAsHeader": true
-				},
-				"schema": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/AzureBlobStorage')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/salesdatasql')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "ls_sql_jtechfinance",
-					"type": "LinkedServiceReference"
-				},
-				"folder": {
-					"name": "salesdata"
-				},
-				"annotations": [],
-				"type": "AzureSqlTable",
-				"schema": [
-					{
-						"name": "ordernumber",
-						"type": "nvarchar"
-					},
-					{
-						"name": "orderdate",
-						"type": "date"
-					},
-					{
-						"name": "customer name index",
-						"type": "int",
-						"precision": 10
-					},
-					{
-						"name": "channel",
-						"type": "nvarchar"
-					},
-					{
-						"name": "currency_code",
-						"type": "nvarchar"
-					},
-					{
-						"name": "warehouse_code",
-						"type": "nvarchar"
-					},
-					{
-						"name": "region_id",
-						"type": "int",
-						"precision": 10
-					},
-					{
-						"name": "product_id",
-						"type": "int",
-						"precision": 10
-					},
-					{
-						"name": "order_quantity",
-						"type": "int",
-						"precision": 10
-					},
-					{
-						"name": "unit_price",
-						"type": "decimal",
-						"precision": 10,
-						"scale": 2
-					},
-					{
-						"name": "line_total",
-						"type": "decimal",
-						"precision": 10,
-						"scale": 2
-					},
-					{
-						"name": "total_unit_cost",
-						"type": "decimal",
-						"precision": 10,
-						"scale": 2
-					}
-				],
-				"typeProperties": {
-					"schema": "stage",
-					"table": "fin_sales_orders"
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "SalesExcel",
+								"type": "DatasetReference"
+							},
+							"name": "SalesDataSouce"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "sinkStagingSales_orders",
+								"type": "DatasetReference"
+							},
+							"name": "salesStagingSink"
+						}
+					],
+					"transformations": [],
+					"scriptLines": [
+						"source(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> SalesDataSouce",
+						"SalesDataSouce sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          ordernumber as string,",
+						"          orderdate as date,",
+						"          customer_name as integer,",
+						"          channel as string,",
+						"          currency_code as string,",
+						"          warehouse_code as string,",
+						"          region_id as integer,",
+						"          product_id as integer,",
+						"          order_quantity as integer,",
+						"          unit_price as decimal(10,2),",
+						"          line_total as decimal(10,2),",
+						"          total_unit_cost as decimal(10,2)",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     truncate:true,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError') ~> salesStagingSink"
+					]
 				}
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/ls_sql_jtechfinance')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/RefreshSalesStoredProcedure')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "RefreshCurrentMonthSalesTranscations",
-						"type": "SqlServerStoredProcedure",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"storedProcedureName": "[[dbo].[RefreshCurrentMonthSalesTranscations]"
-						},
-						"linkedServiceName": {
-							"referenceName": "ls_sql_jtechfinance",
-							"type": "LinkedServiceReference"
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/ls_sql_jtechfinance')]"
+				"[concat(variables('factoryId'), '/datasets/SalesExcel')]",
+				"[concat(variables('factoryId'), '/datasets/sinkStagingSales_orders')]"
 			]
 		}
 	]
