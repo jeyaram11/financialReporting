@@ -18,12 +18,26 @@
 						"referenceName": "sinkStagingSales_orders",
 						"type": "DatasetReference"
 					},
-					"name": "salesStagingSink"
+					"name": "sink1"
 				}
 			],
 			"transformations": [],
 			"scriptLines": [
-				"source(allowSchemaDrift: true,",
+				"source(output(",
+				"          OrderNumber as string,",
+				"          OrderDate as date,",
+				"          {Customer Name Index} as short,",
+				"          Channel as string,",
+				"          {Currency Code} as string,",
+				"          {Warehouse Code} as string,",
+				"          {Delivery Region Index} as short,",
+				"          {Product Description Index} as short,",
+				"          {Order Quantity} as short,",
+				"          {Unit Price} as double,",
+				"          {Line Total} as double,",
+				"          {Total Unit Cost} as double",
+				"     ),",
+				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     ignoreNoFilesFound: false) ~> SalesDataSouce",
 				"SalesDataSouce sink(allowSchemaDrift: true,",
@@ -50,7 +64,20 @@
 				"     format: 'table',",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
-				"     errorHandlingOption: 'stopOnFirstError') ~> salesStagingSink"
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          ordernumber = OrderNumber,",
+				"          orderdate = OrderDate,",
+				"          channel = Channel,",
+				"          currency_code = {Currency Code},",
+				"          warehouse_code = {Warehouse Code},",
+				"          region_id = {Delivery Region Index},",
+				"          product_id = {Product Description Index},",
+				"          order_quantity = {Order Quantity},",
+				"          unit_price = {Unit Price},",
+				"          line_total = {Line Total},",
+				"          total_unit_cost = {Total Unit Cost}",
+				"     )) ~> sink1"
 			]
 		}
 	}
