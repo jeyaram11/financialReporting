@@ -9,11 +9,17 @@
 					"referenceName": "pl_masterSales",
 					"type": "PipelineReference"
 				}
+			},
+			{
+				"pipelineReference": {
+					"referenceName": "masterProductsPipeline",
+					"type": "PipelineReference"
+				}
 			}
 		],
 		"type": "BlobEventsTrigger",
 		"typeProperties": {
-			"blobPathBeginsWith": "/raw/blobs/sampledata/Arancione/",
+			"blobPathBeginsWith": "/raw/blobs/",
 			"ignoreEmptyBlobs": true,
 			"scope": "/subscriptions/dd9b8fc9-6ca7-4bfd-b0ba-d437fd2e66e8/resourceGroups/jtechfinance-rg/providers/Microsoft.Storage/storageAccounts/jtechfinance",
 			"events": [

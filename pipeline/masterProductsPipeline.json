@@ -1,0 +1,50 @@
+{
+	"name": "masterProductsPipeline",
+	"properties": {
+		"activities": [
+			{
+				"name": "loadingStageProductsData",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "df_products",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "loadingDimProducts",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "loadingStageProductsData",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "plFinProductsDim",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			}
+		],
+		"folder": {
+			"name": "fin_products"
+		},
+		"annotations": []
+	}
+}
