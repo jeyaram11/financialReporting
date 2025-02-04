@@ -1,0 +1,50 @@
+{
+	"name": "MasterSalesPipeline",
+	"properties": {
+		"activities": [
+			{
+				"name": "SalesStaging",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "SalesCopy",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "SalesDimensions",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "SalesStaging",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "RefreshSalesStoredProcedure",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			}
+		],
+		"folder": {
+			"name": "sales"
+		},
+		"annotations": []
+	}
+}
