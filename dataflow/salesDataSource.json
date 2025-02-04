@@ -1,0 +1,57 @@
+{
+	"name": "salesDataSource",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "SalesExcel",
+						"type": "DatasetReference"
+					},
+					"name": "SalesDataSouce"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "sinkStagingSales_orders",
+						"type": "DatasetReference"
+					},
+					"name": "salesStagingSink"
+				}
+			],
+			"transformations": [],
+			"scriptLines": [
+				"source(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> SalesDataSouce",
+				"SalesDataSouce sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          ordernumber as string,",
+				"          orderdate as date,",
+				"          customer_name as integer,",
+				"          channel as string,",
+				"          currency_code as string,",
+				"          warehouse_code as string,",
+				"          region_id as integer,",
+				"          product_id as integer,",
+				"          order_quantity as integer,",
+				"          unit_price as decimal(10,2),",
+				"          line_total as decimal(10,2),",
+				"          total_unit_cost as decimal(10,2)",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     truncate:true,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> salesStagingSink"
+			]
+		}
+	}
+}

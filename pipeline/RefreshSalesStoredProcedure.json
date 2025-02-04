@@ -23,6 +23,9 @@
 				}
 			}
 		],
+		"folder": {
+			"name": "fin_products"
+		},
 		"annotations": []
 	}
 }

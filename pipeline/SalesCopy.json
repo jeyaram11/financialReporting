@@ -3,8 +3,8 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "CopySalesDatatStaging",
-				"type": "Copy",
+				"name": "LoadingSales",
+				"type": "ExecuteDataFlow",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -15,193 +15,16 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"source": {
-						"type": "ExcelSource",
-						"storeSettings": {
-							"type": "AzureBlobStorageReadSettings",
-							"recursive": true,
-							"enablePartitionDiscovery": false
-						}
+					"dataflow": {
+						"referenceName": "salesDataSource",
+						"type": "DataFlowReference"
 					},
-					"sink": {
-						"type": "AzureSqlSink",
-						"writeBehavior": "insert",
-						"sqlWriterUseTableLock": false
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
 					},
-					"enableStaging": false,
-					"translator": {
-						"type": "TabularTranslator",
-						"mappings": [
-							{
-								"source": {
-									"name": "OrderNumber",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "ordernumber",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "OrderDate",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "orderdate",
-									"type": "DateTime",
-									"physicalType": "date"
-								}
-							},
-							{
-								"source": {
-									"name": "Customer Name Index",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "customer name index",
-									"type": "Int32",
-									"physicalType": "int"
-								}
-							},
-							{
-								"source": {
-									"name": "Channel",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "channel",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "Currency Code",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "currency_code",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "Warehouse Code",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "warehouse_code",
-									"type": "String",
-									"physicalType": "nvarchar"
-								}
-							},
-							{
-								"source": {
-									"name": "Delivery Region Index",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "region_id",
-									"type": "Int32",
-									"physicalType": "int"
-								}
-							},
-							{
-								"source": {
-									"name": "Product Description Index",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "product_id",
-									"type": "Int32",
-									"physicalType": "int"
-								}
-							},
-							{
-								"source": {
-									"name": "Order Quantity",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "order_quantity",
-									"type": "Int32",
-									"physicalType": "int"
-								}
-							},
-							{
-								"source": {
-									"name": "Unit Price",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "unit_price",
-									"type": "Decimal",
-									"physicalType": "decimal",
-									"scale": 2,
-									"precision": 10
-								}
-							},
-							{
-								"source": {
-									"name": "Line Total",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "line_total",
-									"type": "Decimal",
-									"physicalType": "decimal",
-									"scale": 2,
-									"precision": 10
-								}
-							},
-							{
-								"source": {
-									"name": "Total Unit Cost",
-									"type": "String",
-									"physicalType": "String"
-								},
-								"sink": {
-									"name": "total_unit_cost",
-									"type": "Decimal",
-									"physicalType": "decimal",
-									"scale": 2,
-									"precision": 10
-								}
-							}
-						],
-						"typeConversion": true,
-						"typeConversionSettings": {
-							"allowDataTruncation": true,
-							"treatBooleanAsNumber": false
-						}
-					}
-				},
-				"inputs": [
-					{
-						"referenceName": "salesdata",
-						"type": "DatasetReference"
-					}
-				],
-				"outputs": [
-					{
-						"referenceName": "salesdatasql",
-						"type": "DatasetReference"
-					}
-				]
+					"traceLevel": "Fine"
+				}
 			}
 		],
 		"folder": {
