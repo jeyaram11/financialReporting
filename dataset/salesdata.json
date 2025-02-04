@@ -14,7 +14,8 @@
 				"fileName": "sales_orders.xlsx",
 				"folderPath": "fact",
 				"container": "raw"
-			}
+			},
+			"firstRowAsHeader": true
 		},
 		"schema": []
 	}
